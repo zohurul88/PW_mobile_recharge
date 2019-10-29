@@ -1,15 +1,16 @@
 import express from "express";
+import Serializer from 'jaysonapi';
 import { ObjectID } from "mongodb";
 import bcrypt from 'bcrypt';
 import db from "../db";
 import { genToken } from "../app/jwt";
-import { throwError, authFailed } from "../app/error";
+import { throwError, authFailed, internalError, throwValidationError } from "../app/error";
 const Ajv = require('ajv');
 const ajv = new Ajv();
 const app = express();
 
 
-app.post("/", async(req, res) => {
+app.post("/", async (req, res) => {
     let userJsonSchema = require('../schema/users/insert.json');
     let validate = ajv.compile(userJsonSchema);
     if (!validate(req.body)) {
@@ -30,7 +31,7 @@ app.post("/", async(req, res) => {
     return internalError(res);
 });
 
-app.post("/login", async(req, res) => {
+app.post("/login", async (req, res) => {
     let userJsonSchema = require('../schema/users/login.json');
     let validate = ajv.compile(userJsonSchema);
     if (!validate(req.body)) {
@@ -44,7 +45,7 @@ app.post("/login", async(req, res) => {
     return await tokenReturn(res, user);
 });
 
-app.get("/access-token", async(req, res) => {
+app.get("/access-token", async (req, res) => {
     if (req.headers['x-api-key'] !== process.env.APP_SECRET_KEY) {
         return apiKeyFailed(res, "Invalid api key");
     }
@@ -58,6 +59,14 @@ app.get("/access-token", async(req, res) => {
     }
     return tokenReturn(res, user);
 });
+app.get("/", async (req, res) => {
+    let users = await db.selectMany({}, "users");
+
+    if (!users) {
+        return userNotFound(res);
+    }
+    return res.status(200).json(userJsonOut(users));
+});
 
 
 
@@ -70,7 +79,7 @@ let apiKeyFailed = (res, title, statusCode = 401) => {
 }
 
 
-let tokenReturn = async(res, user) => {
+let tokenReturn = async (res, user) => {
     let refreshToken = await refreshTokenGen(user);
     if (!refreshToken) return internalError(res);
     let lifetime = parseInt(process.env.JWT_ACCESS_LIFETIME);
@@ -83,7 +92,7 @@ let tokenReturn = async(res, user) => {
     });
 }
 
-let refreshTokenGen = async(user) => {
+let refreshTokenGen = async (user) => {
     let lifetime = parseInt(process.env.JWT_REFRESH_LIFETIME);
     let token = await db.insert({
         app: process.env.APP_SECRET_KEY,
@@ -116,41 +125,18 @@ let userNotFound = (res) => {
     }, res, 404);
 }
 
-let throwValidationError = (validate, res) => {
-    errors = [];
-    for (let i in validate.errors) {
-        let pointer = validate.errors[i].params.missingProperty ? validate.errors[i].params.missingProperty : validate.errors[i].dataPath;
-        errors.push({
-            code: 400,
-            source: { pointer },
-            title: validate.errors[i].message,
-        })
-    }
-    return throwError(errors, res);
-}
 
-let internalError = (res) => {
-    return throwError({
-        code: 500,
-        title: "Something went wrong!"
-    }, res, 500);
-}
-
-
-
-let hasUser = async(email, collection) => {
+let hasUser = async (email, collection) => {
     return db.select({ "email": email }, collection)
 }
 
 
 let userJsonOut = (users) => {
-    let JSONAPISerializer = require('jsonapi-serializer').Serializer;
-
-    let UserSerializer = new JSONAPISerializer('users', {
+    let UserSerializer = Serializer('user', {
         attributes: ['name', 'email']
     });
 
-    return UserSerializer.serialize(users);
+    return UserSerializer.serialize({ data: users });
 }
 
 module.exports = app;

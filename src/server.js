@@ -25,10 +25,19 @@ app.use((req, res, next) => {
     return next();
 });
 
+// app.use(function(error, req, res, next) { /* if err.status == 4** then handle json error => res.status(400).send(), else shutdown node */ }
+app.use((error, req, res, next) => {
+    if (error instanceof SyntaxError) {
+        return errorRes.throwError({ code: 400, title: "malformed json body!" }, res, 400);
+    }
+    return next();
+});
+
 /**
  * user module
  */
 app.use("/user", require("./modules/user"));
+app.use("/recharge", require("./modules/recharge"));
 
 
 

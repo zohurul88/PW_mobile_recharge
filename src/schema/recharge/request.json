@@ -1,0 +1,71 @@
+{
+    "definitions": {},
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "http://example.com/root.json",
+    "type": "array",
+    "title": "The Root Schema",
+    "maxItems": 10,
+    "minItems": 1,
+    "items": {
+        "$id": "#/items",
+        "type": "object",
+        "title": "The Items Schema",
+        "additionalProperties": false,
+        "required": [
+            "number",
+            "amount",
+            "operator",
+            "type"
+        ],
+        "properties": {
+            "number": {
+                "$id": "#/items/properties/number",
+                "type": "string",
+                "title": "The Number Schema",
+                "default": "",
+                "pattern": "(^(\\+8801|8801|01))[1|3-9]{1}(\\d){8}$"
+            },
+            "amount": {
+                "$id": "#/items/properties/amount",
+                "type": "integer",
+                "title": "The Amount Schema",
+                "examples": [
+                    10
+                ],
+                "minimum": 10.0,
+                "maximum": 1000.0
+            },
+            "operator": {
+                "$id": "#/items/properties/operator",
+                "type": "string",
+                "enum": [
+                    "grameenphone",
+                    "gp",
+                    "banglalink",
+                    "robi",
+                    "airtel",
+                    "bl"
+                ],
+                "title": "The Oparetor Schema",
+                "default": "",
+                "examples": [
+                    "grameenphone",
+                    "gp",
+                    "banglalink",
+                    "robi",
+                    "airtel",
+                    "bl"
+                ]
+            },
+            "type": {
+                "$id": "#/items/properties/type",
+                "type": "string",
+                "enum": [
+                    "prepaid",
+                    "postpaid"
+                ],
+                "title": "The recharge number type"
+            }
+        }
+    }
+}
